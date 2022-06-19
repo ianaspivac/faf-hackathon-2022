@@ -3,7 +3,7 @@
     <div v-if="setted">
       <div class="role">YOU ARE {{ role }}</div>
       <div class="info">You have to remain alive</div>
-      <div class="time">{{ time }}</div>
+      <div class="time">{{ timeRow }}</div>
       <div class="info">to get 100 points</div>
       <div class="map" :style="radarAngle">
         <div v-for="player in players">
@@ -42,9 +42,11 @@ export default {
       longitude: null,
       errorStr: null,
       timer: null,
-      angle: 0,
+      oldAngle: 0,
+      currentAngle: 0,
       direction: 0,
       radarAngle: "rotate(0)deg",
+      gameTime: 10 * 60,
     };
   },
   
@@ -58,8 +60,17 @@ export default {
     loaded() {
       return true;
     },
-    time() {
-      return "3:48";
+    timeRow() {
+      let minutes = Math.floor(this.gameTime / 60);
+      if (minutes < 10) {
+        minutes = "0" + minutes;
+      }
+      let seconds = this.gameTime % 60;
+      if (seconds < 10) {
+        seconds = "0" + seconds;
+      }
+
+      return `${minutes}:${seconds}`;
     },
     players() {
       return [
@@ -77,7 +88,18 @@ export default {
 
   created() {
     document.addEventListener.call(window, "deviceorientation", (event) => {
-      this.radarAngle = `--radarAngle: rotate(${event.alpha}deg)`;
+      const a = this.oldAngle;
+      const b = event.alpha;
+      const rawDiff = b - a;
+      const finalDiff = (Math.abs(rawDiff) > 180)
+        ? (a > b
+              ? 360 - a + b
+              : b - a - 360)
+        : rawDiff;
+
+      this.oldAngle = this.currentAngle;
+      this.currentAngle += finalDiff;
+      this.radarAngle = `--radarAngle: rotate(${this.currentAngle}deg)`;
     });
   },
 
@@ -85,14 +107,17 @@ export default {
     this.timer = setInterval(() => {
       this.getLocation();
     }, 10000);
+
+    const countdownIntervalToken = setInterval(() => {
+      this.gameTime--;
+      if (this.gameTime === 0) {
+        clearInterval(countdownIntervalToken);
+      }
+    }, 1000);
   },
 
-  beforeDestroy() {
+  beforeUnmounted() {
     clearInterval(this.timer);
-  },
-
-  destroyed() {
-    window.removeEventListener("deviceorientation", this.showDirection());
   },
 
   methods: {
