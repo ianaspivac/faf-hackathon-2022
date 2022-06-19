@@ -77,17 +77,18 @@ export default {
 
   created() {
     document.addEventListener.call(window, "deviceorientation", (event) => {
-      const a = this.oldAngle;
-      const b = event.alpha;
-      const rawDiff = b - a;
-      const finalDiff = (Math.abs(rawDiff) > 180)
-        ? (a > b
-              ? 360 - a + b
-              : b - a - 360)
-        : rawDiff;
-
-      this.oldAngle = this.currentAngle;
-      this.currentAngle += finalDiff;
+      // const a = this.oldAngle;
+      // const b = event.alpha;
+      // const rawDiff = b - a;
+      // const finalDiff = (Math.abs(rawDiff) > 180)
+      //   ? (a > b
+      //         ? 360 - a + b
+      //         : b - a - 360)
+      //   : rawDiff;
+      //
+      // this.oldAngle = this.currentAngle;
+      // this.currentAngle += finalDiff;
+      this.currentAngle = Math.floor(event.alpha);
       this.radarAngle = `--radarAngle: rotate(${this.currentAngle}deg)`;
     });
   },
