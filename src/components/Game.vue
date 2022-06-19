@@ -33,6 +33,8 @@
   </div>
 </template>
 <script>
+import { v4 as uuidv4 } from 'uuid';
+
 export default {
   data() {
     return {
@@ -47,13 +49,12 @@ export default {
       direction: 0,
       radarAngle: "rotate(0)deg",
       gameTime: 10 * 60,
+      players: [],
+      role: "",
     };
   },
   
   computed: {
-    role() {
-      return "Hunter";
-    },
     setted() {
       return true;
     },
@@ -72,18 +73,6 @@ export default {
 
       return `${minutes}:${seconds}`;
     },
-    players() {
-      return [
-        {
-          id: "1",
-          degree: "0",
-        },
-        {
-          id: "2",
-          degree: "90",
-        },
-      ];
-    }
   },
 
   created() {
@@ -106,14 +95,52 @@ export default {
   mounted() {
     this.timer = setInterval(() => {
       this.getLocation();
-    }, 10000);
 
-    const countdownIntervalToken = setInterval(() => {
+      // This will send outdated data, take in consideration
+      ws.send(JSON.stringify({
+        event: "telemetry",
+        data: {
+          longitude: this.longitude,
+          latitude: this.latitude,
+        },
+      }));
+    }, 200);
+
+    this.countdownIntervalToken = setInterval(() => {
       this.gameTime--;
       if (this.gameTime === 0) {
-        clearInterval(countdownIntervalToken);
+        clearInterval(this.countdownIntervalToken);
       }
     }, 1000);
+
+    const ws = new WebSocket("ws://67.207.80.245:8000/ws/test/" + uuidv4());
+    this.ws = ws;
+    ws.onmessage = ({ data: payload }) => {
+      const { event, data } = JSON.parse(payload);
+
+      switch (event) {
+        case "enemies":
+          this.players = data.map(d => ({ degree: d }));
+          break;
+
+        case "gameStatusUpdate":
+          if (data.status === "start") {
+              console.log("STARTED", data);
+              this.role = data.role.toUpperCase();
+          }
+          else if (data.status === "finish") {
+            clearInterval(this.countdownIntervalToken);
+          }
+          break;
+
+        default:
+          console.error("Unrecognized server message", event, data);
+      }
+    };
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ event: "startGame", data: {} }));
+    }
   },
 
   beforeUnmounted() {
@@ -133,7 +160,6 @@ export default {
           this.location = pos;
           this.latitude = this.location.coords.latitude;
           this.longitude = this.location.coords.longitude;
-          console.log(this.location);
         },
         (err) => {
           this.gettingLocation = false;

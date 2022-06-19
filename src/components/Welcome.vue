@@ -7,7 +7,7 @@
       <div>
         <div class="user underline">
           <div class="avatar"></div>
-          <div>Us3rnam3</div>
+          <div>{{ username }}</div>
         </div>
       </div>
     </div>
@@ -51,9 +51,14 @@
   </div>
 </template>
 <script>
+import axios from "axios";
+
+const API_ROOT = "http://67.207.80.245:8000";
+
 export default {
   data() {
     return {
+      username: "Us3rnam3",
       balance: "100",
       victims: "4",
       time: "4:20",
@@ -64,6 +69,20 @@ export default {
   computed: {
     points() {
       return 100;
+    },
+  },
+  mounted() {
+    this.login();
+  },
+  methods: {
+    async login() {
+      const loginUrl = `${API_ROOT}/login/test`;
+      const loginResponse = await (await axios.get(loginUrl, { headers: {
+          "test_uuid": "test",
+        }})).data;
+
+      this.username = loginResponse.name;
+      this.balance = loginResponse.balance;
     },
   },
 };
